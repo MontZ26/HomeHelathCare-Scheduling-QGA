@@ -1,0 +1,616 @@
+% This is quantum genetic algorithm(QGA)
+% In this function ,it fulfils quantum genetic algorithm
+clc;
+clear;
+global FID
+global sizepop 
+global lenchrom
+global judge
+global maxgen
+global individuals
+global Nindividuals
+global GAindividuals
+global NGAindividuals
+global OGAindividuals
+global Oindividuals
+global PDist
+global CTN
+global pmutation
+global pcross
+global PReq
+global CTask
+global CTaskN
+global gen
+global best
+global Qbest
+global oldfitnessT
+global newfitnessT
+global QGlobalminima
+global Globalminima
+global Tgene
+
+
+%wait(30);
+CTask=[1,0,1,0,1;0,1,1,1,0;1,1,0,1,1;1,1,1,0,0];
+PReq=[1,0,1,0,1;1,0,1,0,1;1,0,1,0,1;0,1,0,1,1;0,0,1,1,0;1,0,1,1,0;0,1,0,1,1;1,0,1,0,1;0,1,1,0,1];
+CTaskN=5;
+%--------10-------These can be modified as you like-----------------------
+maxgen=500;                         % maximum generation
+sizepop=38;                        % size of population 
+CTN=4; % Care Team Number
+Tgene=ceil(log2(CTN)+1);
+fprintf('\n======================= Tgene=%d\n',Tgene);
+%mydialog();
+%dlgboxInput1();
+lenchrom=9; % length of bit of every chromosom varible==number of patients
+PDist=[0 7.28 7.81 4.47 5 5 7.07 6.71 4 1.41;7.28 0 2.2 3 4 3 3.6 5.7 7.1 6.1;7.81 2.24 0 4 3 4 1.4 3.6 6 5.8;4.47 3 4 0 2 3 4.1 6 4.5 2.2;5 4.47 3 2.2 0 4 2.2 2 4 3.6;5 2.83 4.5 3.2 4 0 5 6.3 6.4 4.1;7.07 3.61 1.4 4.1 2 5 0 2.2 5.1 5.4;6.71 5.66 3.6 6 2 6 2.2 0 3.6 5.4;4 7.14 6 4.5 4 6 5.1 3.6 0 3.2;1.41 6.08 5.8 2.2 4 4 5.4 5.4 3.2 0];
+pcross=0.9;
+pmutation=0.001;
+QGAbestfitnessT=zeros(sizepop,1);
+QGAbestindexT=zeros(sizepop,1);
+QGAGlobalbestfitness=0;
+
+
+judge=0;                 % disaster counter
+
+individuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % structure of population
+Initindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % structure of population
+Oindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % structure of population
+Nindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % New structure of population
+GAindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene));   % structure of GA population
+NGAindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene));   % structure of GA population
+OGAindividuals=struct('PS',zeros(1,sizepop),'fitness',zeros(1,sizepop),'DecChrom',zeros(sizepop,lenchrom),'BinChrom',zeros(sizepop,lenchrom*Tgene));   % structure of GA population
+
+best=struct('Bfitness',0,'BDecChrom',zeros(1,lenchrom),'Bbinary',zeros(1,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % best individual 
+Qbest=struct('Bfitness',0,'BDecChrom',zeros(1,lenchrom),'Bbinary',zeros(1,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % best individual 
+QGlobalbest=struct('Bfitness',0,'BDecChrom',zeros(1,lenchrom),'Bbinary',zeros(1,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % Global best individual 
+Globalbest=struct('Bfitness',0,'BDecChrom',zeros(1,lenchrom),'Bbinary',zeros(1,lenchrom*Tgene),'Alphachrom',zeros(sizepop,lenchrom*Tgene),'Betachrom',zeros(sizepop,lenchrom*Tgene));   % Global best individual 
+oldfitnessT=zeros(1,sizepop);
+newfitnessT=zeros(1,sizepop);
+Globalminima=struct('fitness',0,'DecChrom',zeros(lenchrom));
+QGlobalminima=struct('fitness',0,'DecChrom',zeros(lenchrom));
+
+FileName='results';
+FID = fopen(FileName, 'w');
+if FID < 0, error('Cannot open file'); end
+%++++++++++++++++++++++++++++++++Quantum Genetic Algoritm++++++++++++++++++++++++++++++++
+%Initialization
+fprintf('**************************************************************\n');
+fprintf('****************Quantum Genetic Algorithm*********************\n');
+fprintf('**************************************************************\n');
+
+for i=1:sizepop
+    individuals.fitness(i)=0;
+    for j=1:lenchrom
+     individuals.DeChrom(i,j)=0;
+    end
+    for j=1:lenchrom*Tgene
+     individuals.Alphachrom(i,j)= 1/sqrt(2);
+     individuals.Betachrom(i,j)= 1/sqrt(2);
+     individuals.BinChrom(i,j)=0;
+    end
+end
+    
+Qcollapse();
+ fprintf('\n I finished with collapse-I should start convertion of binary to decimal ');
+
+  fprintf('\n=========================================================================');
+  fprintf('\n===========New Individual converted Table for generation %d=======================',gen+1);
+  fprintf('\n=========================================================================');
+
+for i=1:sizepop
+   for k=1:lenchrom
+         individuals.DecChrom(i,k)=0;
+    for l=1:Tgene
+         individuals.DecChrom(i,k)= individuals.DecChrom(i,k)+individuals.BinChrom(i,(k-1)*Tgene+l)*power(2,Tgene-l);
+    end
+    
+    if individuals.DecChrom(i,k)> CTN
+        individuals.DecChrom(i,k)= individuals.DecChrom(i,k)-CTN;
+        individuals.BinChrom(i,(k-1)*Tgene+1)=0;
+        X=individuals.Alphachrom(i,(k-1)*Tgene+1);
+        individuals.Alphachrom(i,(k-1)*Tgene+1)= individuals.Betachrom(i,(k-1)*Tgene+1);
+        individuals.Betachrom(i,(k-1)*Tgene+1)=X;
+    end
+   
+   if individuals.DecChrom(i,k)==0
+       pick=rand;
+       while pick==0
+             pick=rand;
+       end
+       individuals.DecChrom(i,k)=(ceil(pick*CTN));
+       X=ceil(pick*CTN);
+       binvector=dec2binvec(X,Tgene);
+       for l=1:Tgene
+         individuals.BinChrom(i,(k*Tgene)-l+1)=binvector(l);
+         individuals.Alphachrom(i,k*(Tgene-1)+l)= 1/sqrt(2);
+         individuals.Betachrom(i,k*(Tgene-1)+l)= 1/sqrt(2);
+       end
+       
+   end
+   
+   end
+   fprintf('\n %d#',individuals.fitness(i));
+   for k=1:lenchrom
+       fprintf('#%d#',individuals.DecChrom(i,k));
+       for l=1:Tgene
+        fprintf('%d',individuals.BinChrom(i,(k-1)*Tgene+l));
+       end
+   fprintf('#');
+   end
+end
+        fprintf('\n==========================================================='); 
+        fprintf('\n================Save Initiindividuals data================='); 
+        fprintf('\n==========================================================='); 
+
+        for i=1:sizepop
+            GAindividuals.fitness(i)=individuals.fitness(i);
+            OGAindividuals.fitness(i)=GAindividuals.fitness(i);
+            Initindividuals.fitness(i)=individuals.fitness(i);
+            for j=1:lenchrom
+                GAindividuals.DecChrom(i,j)=individuals.DecChrom(i,j);
+                OGAindividuals.DecChrom(i,j)=GAindividuals.DecChrom(i,j);
+                Initindividuals.DecChrom(i,j)=individuals.DecChrom(i,j);
+            end
+            for j=1:lenchrom*Tgene
+            GAindividuals.BinChrom(i,j)=individuals.BinChrom(i,j);
+            OGAindividuals.BinChrom(i,j)=GAindividuals.BinChrom(i,j);
+            Initindividuals.BinChrom(i,j)=individuals.BinChrom(i,j);
+            Initindividuals.Alphachrom(i,j)=individuals.Alphachrom(i,j);
+            Initindividuals.Betachrom(i,j)=individuals.Betachrom(i,j);
+            end
+        end 
+ fprintf('\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+ fprintf('\n$$$$$$$$$$$$$      GAindividulas Data       $$$$$$$$$$$$$$$');
+ fprintf('\n============Table GAindividuals====================');
+fprintf('\n======================================================');
+    fprintf('\n======================================================');
+    for i=1:sizepop
+        fprintf('\n GAindividuals(%d)   ',i);   
+        fprintf('%1.3f',GAindividuals.fitness(i));
+        for j=1:lenchrom
+            fprintf(' %d',GAindividuals.DecChrom(i,j));
+        end
+        fprintf('###');
+        for j=1:lenchrom*Tgene
+            fprintf(' %d',GAindividuals.BinChrom(i,j));
+        end
+        fprintf('###');
+        fprintf('\n');
+    end
+ 
+ fprintf('\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+
+%================================================================
+% evolution starts of Quantum Genetic Algorithm
+%================================================================    
+for gen=1:maxgen
+ 
+fprintf('#########################################################################################\n');
+fprintf('##################################### Starting new generation %d#########################',gen);
+fprintf('#########################################################################################\n');
+
+%DropBadSolution();
+ %{
+  % avoid disaster in quantum GA
+  % disaster
+    if judge>0.2*maxgen
+       Qdisaster();
+   end
+ %}
+ fprintf('\n===========NEWFITNESS CALL INSIDE Qunatum GA GENERATION %d ==============',gen);
+% calculate GA fitness 
+% GAfitness(x) is the function for calculating fitnes
+    for k=1:sizepop
+        % calculate fitness 
+        % GAfitness(x) is the function for calculating fitness 
+        oldfitnessT(k)=GAindividuals.fitness(k);
+        fprintf('\n oldfitness(%d) before calling GAfitness in generation %d=%1.3f',k,oldfitnessT(k),gen);
+        GAindividuals.fitness(k)=GAfitness(k);        % ffitness(x) is the function for calculating fitness
+        individuals.fitness(k)=GAindividuals.fitness(k);
+        newfitnessT(k)=GAindividuals.fitness(k);
+        if gen==1
+            oldfitnessT(k)=newfitnessT(k);
+            Initindividuals.fitnessT(k)=newfitnessT(k);
+            OGAindividuals.fitness(k)=newfitnessT(k);
+        end
+        fprintf('===========individuals.fitness==============');
+        fprintf('\nGAindividuals(%d)=%1.3f## individuals(%d)=%1.3f',k,GAindividuals.fitness(k),k,individuals.fitness(k));
+        fprintf('===========Comparison OLD and NEW FITNESS-individuals=GAindividuals==============');
+        fprintf('\noldfitness(%d)=%1.3f newfitness(%d)=%1.3f\n in generation %d',k,newfitnessT(k),k,oldfitnessT(k),gen);
+    end
+    
+    %======================= record the best individual to=================
+    [QGAbestfitness,QGAbestindex]=max(newfitnessT(k));     % find maximum value which is the best
+    %======================= record the best individual to=================
+    fprintf('\n==============Best Index and Best Fitness       ==============');
+    fprintf('\n##### Gen=%d  QGAbestfitness(k)=%1.3f   QGAbestindex=%d  #####',gen,QGAbestfitness,QGAbestindex);
+    fprintf('\n===============================================================');
+
+    Qbest.Bfitness=QGAbestfitness;
+    for j=1:lenchrom
+    Qbest.BDecChrom(j)=GAindividuals.DecChrom(QGAbestindex,j);
+    end
+    for j=1:lenchrom*Tgene
+    Qbest.Bbinary(j)=GAindividuals.BinChrom(QGAbestindex,j);
+    Qbest.Alphachrom(j)=individuals.Alphachrom(QGAbestindex,j);
+    Qbest.Betachrom(j)=individuals.Betachrom(QGAbestindex,j);
+    end
+ 
+         % record the QGA best individual to "best"
+    fprintf(FID,'**********************************************************\n');
+    QGAbestfitnessT(gen)=QGAbestfitness;
+    if QGAbestfitness>QGAGlobalbestfitness
+          QGAGlobalbestfitness=QGAbestfitness;
+          QGlobalbest.Bfitness=Qbest.Bfitness;
+          for j=1:lenchrom
+            QGlobalbest.BDecChrom(j)=Qbest.BDecChrom(j);            
+          end
+          for j=1:lenchrom*Tgene
+             QGlobalbest.Bbinary(j)=Qbest.Bbinary(j);
+             QGlobalbest.Alphachrom(j)=Qbest.Alphachrom(j);
+             QGlobalbest.Betachrom(j)=Qbest.Betachrom(j);
+          end
+    end
+     
+fprintf(FID,'********************************************************************************\n');
+fprintf('************************************************************************************\n');
+fprintf('\n=================================Generation %d ===================================\n',gen);
+fprintf('QGABestfitnessT(%d)=%2.3f    QGAGlobalbestfitness=%2.3f\n',gen,QGAbestfitnessT(gen),QGAGlobalbestfitness);
+fprintf(FID,'\n=================================Generation %d ===================================\n',gen);
+fprintf(FID,'QGAbestfitnessT(%d)=%2.3f  QGAGlobalbestfitness=%2.3f\n',gen,QGAbestfitnessT(gen),QGAGlobalbestfitness);
+fprintf('********************************************************************************************************************\n');
+fprintf(FID,'*******************************************************************************************************************\n');
+
+fprintf('****Starting Quantum Collapse at the Beginning of iteration');
+    fprintf('****Starting Quantum Gate******\n');
+    % quantum gate
+  Qgate(); 
+    %fprintf('****Starting Quantum Crossover******\n');
+    % quantum cross
+ Qcross();
+    %fprintf('****Starting Quantum mutation******\n');
+    % quantum mutation 
+ Qmutation();
+   
+
+ % The quantum Elit selection
+  %ElitSelection();
+
+  % The quantum collapse.
+  Qcollapse();
+ fprintf('\n I finished with collapse-I should start convertion of binary to decimal ');
+  
+  fprintf('\n=========================================================================');
+  fprintf('\n===========New Individual converted Table for generation %d=======================',gen+1);
+  fprintf('\n=========================================================================');
+
+ for i=1:sizepop
+   for k=1:lenchrom
+        individuals.DecChrom(i,k)=0;
+    for l=1:Tgene
+         individuals.DecChrom(i,k)= individuals.DecChrom(i,k)+individuals.BinChrom(i,(k-1)*Tgene+l)*power(2,Tgene-l);
+    end
+    
+    for l=1:Tgene
+        if individuals.DecChrom(i,k)> CTN
+        individuals.DecChrom(i,k)= individuals.DecChrom(i,k)-CTN;
+        individuals.BinChrom(i,(k-1)*Tgene+1)=0;
+        X=individuals.Alphachrom(i,(k-1)*Tgene+l);
+        individuals.Alphachrom(i,(k-1)*Tgene+l)= individuals.Betachrom(i,(k-1)*Tgene+l);
+        individuals.Betachrom(i,(k-1)*Tgene+l)=X;
+        end
+    end
+   if individuals.DecChrom(i,k)==0
+       pick=rand;
+       while pick==0
+             pick=rand;
+       end
+       individuals.DecChrom(i,k)=(ceil(pick*CTN));
+       X=ceil(pick*CTN);
+       binvector=dec2binvec(X,Tgene);
+       for l=1:Tgene
+         individuals.BinChrom(i,(k*Tgene)-l+1)=binvector(l);
+         individuals.Alphachrom(i,k*(Tgene-1)+l)= 1/sqrt(2);
+         individuals.Betachrom(i,k*(Tgene-1)+l)= 1/sqrt(2);
+       end
+   end
+ 
+   end
+   fprintf('\n %d#',individuals.fitness(i));
+   for k=1:lenchrom
+       fprintf('#%d#',individuals.DecChrom(i,k));
+       for l=1:Tgene
+        fprintf('%d',individuals.BinChrom(i,(k-1)*Tgene+l));
+       end
+   fprintf('#');
+   end
+ end
+ fprintf('\n=======================================================================');
+ fprintf('\n=========Transfer from new population to old population================');
+ fprintf('\n=======================================================================');
+
+
+       for i=1:sizepop
+            OGAindividuals.fitness(i)=GAindividuals.fitness(i);
+            Oindividuals.fitness(i)=GAindividuals.fitness(i);
+            for j=1:lenchrom
+             OGAindividuals.DecChrom(i,j)=individuals.DecChrom(i,j);
+             Oindividuals.DecChrom(i,j)=individuals.DecChrom(i,j);
+             GAindividuals.DecChrom(i,j)=individuals.DecChrom(i,j);
+
+            end
+            for j=1:lenchrom*Tgene
+            GAindividuals.BinChrom(i,j)=individuals.BinChrom(i,j);
+            OGAindividuals.BinChrom(i,j)=GAindividuals.BinChrom(i,j);
+            Oindividuals.BinChrom(i,j)=GAindividuals.BinChrom(i,j);
+            Oindividuals.Alphachrom(i,j)=individuals.Alphachrom(i,j);
+            Oindividuals.Betachrom(i,j)=individuals.Betachrom(i,j);
+            end
+       end
+
+  fprintf('\n=========================================================================');
+  %fprintf('***********************Elit selection*******************\n');
+   %selection();
+  fprintf('\n========================End of generation %d=======================',gen+1);
+  fprintf('\n=========================================================================');
+end
+
+ QGlobalminima.fitness=QGlobalbest.Bfitness;
+     for j=1:lenchrom
+            QGlobalminima.DecChrom(j)=QGlobalbest.BDecChrom(j);
+     end
+ 
+ fprintf('**************************************************************\n');
+fprintf('*********************Genetic Algorithm************************\n');
+fprintf('**************************************************************\n');
+
+
+%Initialization
+pcross=0.9;
+pmutation=0.001;
+
+GAbestindexT=zeros(sizepop,1);
+GAbestfitnessT=zeros(sizepop,1);
+GAGlobalbestfitness=0;
+
+  for i=1:sizepop
+    GAindividuals.fitness(i)=Initindividuals.fitness(i);
+    OGAindividuals.fitness(i)=Initindividuals.fitness(i);
+    for j=1:lenchrom
+        GAindividuals.DecChrom(i,j)=Initindividuals.DecChrom(i,j);
+        OGAindividuals.DecChrom(i,j)=Initindividuals.DecChrom(i,j);
+    end
+    for j=1:lenchrom*Tgene
+        GAindividuals.BinChrom(i,j)=Initindividuals.BinChrom(i,j);
+        OGAindividuals.BinChrom(i,j)=Initindividuals.BinChrom(i,j);
+    end
+  end
+
+
+fprintf('======================================================================');
+fprintf('===========evolution starts of Simple Genetic Algorithm==========');
+fprintf('======================================================================');
+ for i=1:sizepop
+     fprintf('\n GAindividuals(%d)   ',i);   
+     fprintf('%1.3f',GAindividuals.fitness(i));
+  for j=1:lenchrom
+   fprintf(' %d',GAindividuals.DecChrom(i,j));
+  end
+  fprintf('###');
+   for j=1:lenchrom*Tgene
+    fprintf(' %d',GAindividuals.BinChrom(i,j));
+   end
+   fprintf('###');
+ end
+
+ 
+%Transfer from new population to old population
+
+fprintf('\n===========================================================');
+fprintf('===========================================');
+fprintf('=====Starting Genetic Algorithm  iterations===============');
+fprintf('===========================================');
+
+  for gen=1:maxgen
+    fprintf('===========Starting GENERATION=%d==in Genetic Algorithm=========== ',gen);
+
+    fprintf('\n===========NEWFITNESS CALL INSIDE GA GENERATION %d ==============',gen);
+
+    % calculate GA fitness 
+    % GAfitness(x) is the function for calculating fitnes
+    for k=1:sizepop
+        oldfitnessT(k)=GAindividuals.fitness(k);
+        fprintf('\n oldfitness(%d) before calling GAfitness in generation %d=%1.3f',k,oldfitnessT(k),gen);
+        GAindividuals.fitness(k)=GAfitness(k);        % GAfitness(x) is the function for calculating fitness
+        newfitnessT(k)=GAindividuals.fitness(k);
+        fprintf('===========individuals.fitness==============');
+        fprintf('\nOGAindividuals(%d)=%1.3f## GAindividuals(%d)=%1.3f',k,OGAindividuals.fitness(k),k,GAindividuals.fitness(k));
+        fprintf('===========Comparison OLD and NEW FITNESS-individuals=GAindividuals==============');
+        fprintf('\noldfitness(%d)=%1.3f newfitness(%d)=%1.3f\n in generation %d',k,oldfitnessT(k),k,newfitnessT(k),gen);
+    end
+    fprintf('\n');
+    %======================= record the best individual to=================
+    [GAbestfitness,GAbestindex]=max(GAindividuals.fitness);     % find maximum value which is the best
+    %======================= record the best individual to=================
+    
+    best.Bfitness=GAbestfitness;
+    for j=1:lenchrom
+        best.BDecChrom(j)=GAindividuals.DecChrom(GAbestindex,j);
+    end
+    for j=1:lenchrom*Tgene
+        best.Bbinary(j)=GAindividuals.BinChrom(GAbestindex,j);
+    end
+    fprintf('===========================================');
+    % record the GA best individual to "best"
+    fprintf(FID,'**********************************************************\n');
+    GAbestfitnessT(gen)=GAbestfitness;
+      if GAbestfitness>GAGlobalbestfitness
+          GAGlobalbestfitness=GAbestfitness;
+          GAGlobalbest.Bfitness=best.Bfitness;
+          for j=1:lenchrom
+            GAGlobalbest.BDecChrom(j)=best.BDecChrom(j);
+          end
+          for j=1:lenchrom*Tgene
+                GAGlobalbest.Bbinary(j)=best.Bbinary(j);
+          end
+      end
+      fprintf(FID,'********************************************************************************\n');
+      fprintf('************************************************************************************\n');
+      fprintf('\n=================================Generation %d ===================================\n',gen);
+      fprintf('GABestfitnessT(%d)=%2.3f    GAGlobalbestfitness=%2.3f\n',gen,GAbestfitnessT(gen),GAGlobalbestfitness);
+      fprintf(FID,'\n=================================Generation %d ===================================\n',gen);
+      fprintf(FID,'GAbestfitnessT(%d)=%2.3f  GAGlobalbestfitness=%2.3f\n',gen,GAbestfitnessT(gen),GAGlobalbestfitness);
+      fprintf('********************************************************************************************************************\n');
+      fprintf(FID,'*******************************************************************************************************************\n');
+
+      %Comparison Oldfitness (OGAindividuals.fitness) and New fitness (GAindividuals.fitness)
+      fprintf('\n***GAindividuals.fitness****OGAindividuals.fitness ***\n');
+      fprintf('\n***GAindividuals.fitness****OGAindividuals.fitness ***\n');
+      for k=1:sizepop
+        fprintf('\n*** %1.3f ***',GAindividuals.fitness(k));
+        fprintf('**** %1.3f ***',OGAindividuals.fitness(k));
+      end
+      fprintf('\n') 
+      fprintf('\n***oldfitnessT*****newfitnessT ***\n');
+      for k=1:sizepop
+        fprintf('\n*** %1.3f ***',oldfitnessT(k));
+        fprintf('**** %1.3f ***',newfitnessT(k));
+      end
+      fprintf('\n');
+      fprintf('\n***********GAindividuals at the beginning of GA operations ************\n');
+
+    % Selection using Stochastic Universal Selection
+      fprintf('****Starting  Roulette Wheel Selection******\n');
+      %ElitSelection();
+      %{-----------------------%}
+      Roulette_Wheel_Selection();
+      %Selection();
+      fprintf('\n======================================================');
+      fprintf('\n======After End of Roulette Wheel===Table GAindividuals=====');
+      fprintf('\n======================================================');
+      fprintf('\n=================================Generation %d ===================================\n',gen);
+
+      %Selection();
+      fprintf('\n======================================================');
+      fprintf('****Starting GA Crossover******\n');
+      for k=1:sizepop 
+        GAindividuals.PS(k)=0;
+      end
+    % GA crossover
+      cross();
+      fprintf('\n======================================================');
+      fprintf('\n***********GAindividuals at the end of Crossover****************\n');
+      for k=1:sizepop 
+        GAindividuals.PS(k)=0;
+      end
+      for i=1:sizepop
+        fprintf('\n GAindividuals(%d)   ',i);   
+        fprintf('%1.3f',GAindividuals.fitness(i));
+        for j=1:lenchrom
+            fprintf(' %d',GAindividuals.DecChrom(i,j));
+        end
+        fprintf('###');
+        for j=1:lenchrom*Tgene
+            fprintf(' %d',GAindividuals.BinChrom(i,j));
+        end
+        fprintf('###');
+        fprintf('\n');
+      end
+
+      fprintf('****Starting GA mutation******\n');
+      % GA mutation 
+      mutation();
+      fprintf('\n======================================================');
+      fprintf('\n======================================================');
+      fprintf('\n======After End of Mutation======Table GAindividuals==============');
+      fprintf('\n======================================================');
+      for i=1:sizepop
+        fprintf('\n GAindividuals(%d)   ',i);   
+        fprintf('%1.3f',GAindividuals.fitness(i));
+        for j=1:lenchrom
+            fprintf(' %d',GAindividuals.DecChrom(i,j));
+        end
+        fprintf('###');
+        for j=1:lenchrom*Tgene
+            fprintf(' %d',GAindividuals.BinChrom(i,j));
+        end
+        fprintf('###');
+        fprintf('\n');
+      end
+      fprintf('\n=================================Generation %d ===================================\n',gen);
+
+   for i=1:sizepop
+      for k=1:lenchrom
+         GAindividuals.DecChrom(i,k)=0;
+         for l=1:Tgene
+            GAindividuals.DecChrom(i,k)= GAindividuals.DecChrom(i,k)+GAindividuals.BinChrom(i,(k-1)*Tgene+l)*power(2,Tgene-l);
+         end
+         for l=1:Tgene
+          if GAindividuals.DecChrom(i,k)> CTN
+            GAindividuals.DecChrom(i,k)= GAindividuals.DecChrom(i,k)-CTN;
+            GAindividuals.BinChrom(i,(k-1)*Tgene+1)=0;
+          end
+         end
+         if GAindividuals.DecChrom(i,k)==0
+           pick=rand;
+           while pick==0
+             pick=rand;
+           end
+           GAindividuals.DecChrom(i,k)=(ceil(pick*CTN));
+           X=ceil(pick*CTN);
+           binvector=dec2binvec(X,Tgene);
+           for l=1:Tgene
+                GAindividuals.BinChrom(i,(k*Tgene)-l+1)=binvector(l);
+           end
+         end
+      end
+      fprintf('\n***********GAindividuals at the end of program****************\n');
+      fprintf('\n#%d#',GAindividuals.fitness(i));
+      for k=1:lenchrom
+       fprintf('#%d#',GAindividuals.DecChrom(i,k));
+       for l=1:Tgene
+        fprintf('%d', GAindividuals.BinChrom(i,(k-1)*Tgene+l));
+       end
+       fprintf('#');
+      end
+      fprintf('\n');
+   end
+ 
+  %Transfer from new population GAindivuadls  to old population %OGAindivuduals
+
+   for k=1:sizepop
+        OGAindividuals.fitness(k)=GAindividuals.fitness(k);
+        for j=1:lenchrom
+        OGAindividuals.DecChrom(k,j)=GAindividuals.DecChrom(k,j);
+        end
+        for j=1:lenchrom*Tgene
+        OGAindividuals.BinChrom(k,j)=GAindividuals.BinChrom(k,j);
+        end
+   end
+ end
+fprintf('************************************************************************************\n');
+fprintf('\n=================================Generation %d ===================================\n',gen);
+fprintf('GABestfitnessT(%d)=%2.3f    GAGlobalbestfitness=%2.3f\n',gen,GAbestfitnessT(gen),GAGlobalbestfitness);
+
+Globalminima.fitness=Globalbest.Bfitness;
+for j=1:lenchrom
+            Globalminima.DecChrom(j)=Globalbest.BDecChrom(j);
+end
+
+    fprintf(FID,'****************************************************************************************\n');
+    fprintf('-------------------------------------------------------------\n');
+    fprintf('----gen--GAbestfitnessT(gen))----------------------QGAbestfitnessT(gen)\n');
+    fprintf('-------------------------------------------------------------\n');
+    for gen=1:maxgen
+     fprintf('----|%d-| |%1.5f|                         |%1.5f|\n',gen,GAbestfitnessT(gen),QGAbestfitnessT(gen));
+    end
+
+%DrawPaths(cpt);
+
+X=1:maxgen;
+figure('Name','Comparison of Quantum Elit Genetic Algorithm & Elit Genetic Algorithm')
+plot(X,GAbestfitnessT,X,QGAbestfitnessT,'--');
+
+DrawPaths();
+fclose(FID);

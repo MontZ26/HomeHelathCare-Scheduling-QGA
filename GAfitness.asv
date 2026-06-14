@@ -1,0 +1,96 @@
+function ret=GAfitness(index)
+global FID
+global PDist
+global lenchrom
+global GAindividuals
+global PReq
+global CTask
+global CTaskN
+global CTN
+global Tgene
+
+DistCGT=zeros(1,CTN);
+Found=zeros(1,CTN);
+SFound=zeros(1,CTN);
+ret=0;
+fprintf('================================================================\n');
+fprintf('\n GAindividuals(%d)   ',index);   
+fprintf('%1.3f',GAindividuals.fitness(index));
+
+ for j=1:lenchrom
+   fprintf(' %d',GAindividuals.DecChrom(index,j));
+ end
+ fprintf('###');
+ for j=1:lenchrom*Tgene
+    fprintf(' %d',GAindividuals.BinChrom(index,j));
+ end
+ fprintf('###');
+ fprintf('\n================================================================\n');
+
+ fprintf(FID,'List of patients and care team to vsisit them \n');
+ TotDist=0;
+ for s=1:CTN
+  fprintf('\n I am in fitness searching distance traveled by Care giver (%d)\n',s);
+    k=1;
+    while (k<=lenchrom && Found(s)==0)
+     % fprintf(FID,'Care team %d should visit patient %d \n',s,k);
+      if (GAindividuals.DecChrom(index,k)==s) 
+          %Found(s)=1 idicates that the care team number is one of care workers charged by visiting the patient k 
+          Found(s)=1;
+      end
+      k=k+1;
+    end
+  fprintf('Care team %d should visit patient if Found= %d \n',Found(s));
+ 
+  if(Found(s)==1)
+    while (k<=lenchrom && SFound(s)==0)
+      % fprintf(FID,'Care team %d should visit patient %d \n',s,k);
+          T=1;
+          while(T<=CTaskN && SFound(s)==0)
+      %SFound(s)=1 indicates that the care team number competencies match the patient k requirements 
+            if(PReq(k,T)==1 && CTask(s,T)==1)
+               SFound(s)=1; % Exists and matches 
+    fprintf('Care team  %d should visit patient with Found= %d \n',s,Found(s));
+            end
+          T=T+1;
+          end
+          k=k+1;
+    end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% If Found==0 then doesn't exists
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if(SFound(s)==1)% exists and matches
+        Prec=0;
+        rank_patient=1;
+        for lc=1:lenchrom
+            if (GAindividuals.DecChrom(index,lc)==s)
+              if rank_patient==1 
+                DistCGT(s)=PDist(1,lc);
+              else
+                DistCGT(s)=DistCGT(s)+PDist(Prec+1,lc+1);
+              end
+              Prec=lc;
+              fprintf('\n I am in fitness DistCGT(%d)=%1.3f\n',s,DistCGT(s));
+              rank_patient=rank_patient+1;
+            end
+        end
+        DistCGT(s)=DistCGT(s)+PDist(Prec+1,1);
+        fprintf(FID,'I am in fitness DistCGT(%d)=%1.3f\n',s,DistCGT(s)); 
+    end
+    for t=1:CTN
+        if SFound(t)==1
+            TotDist=TotDist+DistCGT(t);
+            fprintf('Distance traveled by team %d is %2.2f',t,DistCGT(t));
+            fprintf(FID,'Distance traveled by team %d is %2.2f',t,DistCGT(t));
+        end
+    end
+    fprintf(FID,'Total Distance traveled by all teams %d is %2.2f',t,TotDist);
+    fprintf(FID,'\n');
+    if TotDist==0
+        ret=0;
+    else
+    ret=1/TotDist;
+    end
+   end
+ end
+end
